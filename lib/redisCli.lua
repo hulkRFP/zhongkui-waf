@@ -37,22 +37,24 @@ local function getRedisConn()
     local ok, err = red:connect(host, port, {ssl = redisSSL, pool_size = poolSize})
 
     if not ok then
-        ngx.log(ngx.ERR, "failed to connect: " .. err .. "\n", err)
+        ngx.log(ngx.ERR, "failed to connect redis service: " .. err .. "\n", err)
         return ok, err
     end
 
-    if passwd ~= nil and pwsswd ~= ngx.null then
+    if passwd ~= nil and passwd ~= "" then
         local times = 0
         times, err = red:get_reused_times()
 
         if times == 0 then
             local res, err = red:auth(passwd)
             if not res then
-                ngx.log(ngx.ERR, "failed to authenticate: " .. err .. "\n", err)
+                ngx.log(ngx.ERR, "failed to authenticate redis service: " .. err .. "\n", err)
                 return times, err
             end
         end
     end
+
+    red:select(11)    -- 选择 Redis 桶
 
     return red, err
 end
@@ -62,7 +64,7 @@ local function closeRedisConn(red)
     -- with 10 seconds max idle time
     local ok, err = red:set_keepalive(10000, 100)
     if not ok then
-        ngx.log(ngx.ERR, "failed to set keepalive: " .. err .. "\n", err)
+        ngx.log(ngx.ERR, "failed to set keepalive redis connection: " .. err .. "\n", err)
         return
     end
 end
@@ -70,12 +72,18 @@ end
 function _M.redisSet(key, value, expireTime)
     local red, err = getRedisConn()
     if red then
-        local ok, err = red:set(key, value)
-        if not ok then
-            ngx.log(ngx.ERR, "failed to set key: " .. key .. " "  .. err .. "\n", err)
-            return ok, err
-        elseif expireTime and expireTime > 0 then
-            red:expire(key, expireTime)
+        if expireTime and expireTime > 0 then
+            local ok, err = red:setex(key, expireTime, value)
+            if not ok then
+                ngx.log(ngx.ERR, "failed to set key on redis: " .. key .. " "  .. err .. "\n", err)
+                return ok, err
+            end
+        else
+            local ok, err = red:set(key, value)
+            if not ok then
+                ngx.log(ngx.ERR, "failed to set key on redis: " .. key .. " "  .. err .. "\n", err)
+                return ok, err
+            end
         end
 
         closeRedisConn(red)
@@ -88,7 +96,7 @@ function _M.redisGet(key)
     if red then
         value, err = red:get(key)
         if not value then
-            ngx.log(ngx.ERR, "failed to get key: " .. key .. " "  .. err .. "\n", err)
+            ngx.log(ngx.ERR, "failed to get key from redis: " .. key .. " "  .. err .. "\n", err)
             return value, err
         end
         if value == ngx.null then
@@ -99,14 +107,29 @@ function _M.redisGet(key)
     return value, err
 end
 
-function _M.redisIncr(key)
+function _M.redisIncr(key, expireTime)
     local red, err = getRedisConn()
     local res = 1
     if red then
-        res, err = red:incr(key)
-        if not res then
-            ngx.log(ngx.ERR, "failed to incr key: " .. key .. " " .. err .. "\n", err)
+        if expireTime and expireTime > 0 then
+            local ttl, err = red:ttl(key)
+            if ttl < 0 then
+                local ok, err = red:setex(key, expireTime, 1)
+                if not ok then
+                    ngx.log(ngx.ERR, "failed to set key on redis: " .. key .. " "  .. err .. "\n", err)
+                    return ok, err
+                end
+            else
+                res, err = red:incr(key)
+            end
+        else
+            res, err = red:incr(key)
         end
+
+        if not res then
+            ngx.log(ngx.ERR, "failed to incr key on redis: " .. key .. " " .. err .. "\n", err)
+        end
+
         closeRedisConn(red)
     end
     return res, err

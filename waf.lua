@@ -30,7 +30,7 @@ if config.isWAFOn then
 
     elseif lib.isWhiteURL() then
 
-	elseif lib.isBlackURL() then
+    elseif lib.isBlackURL() then
 
     elseif lib.isEvilArgs() then
 

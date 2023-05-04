@@ -1,0 +1,6 @@
+{
+    "rules":[
+        {"state":"on","action":"deny","ccCount":40,"ccSeconds":30,"rule":"^/api/test123$"},
+        {"state":"on","action":"deny","ccCount":20,"ccSeconds":30,"rule":"^/api/test456$"}
+    ]
+}

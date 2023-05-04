@@ -1,5 +1,8 @@
 {
     "rules":[
+        {"state":"on","action":"redirect","rule":"\\.\\./"},
+        {"state":"on","action":"redirect","rule":"\\:\\$"},
+        {"state":"on","action":"redirect","rule":"\\$\\{"},
         {"state":"on","action":"redirect","rule":"select.+(from|limit)"},
         {"state":"on","action":"redirect","rule":"(?:(union(.*?)select))"},
         {"state":"on","action":"redirect","rule":"having|rongjitest"},

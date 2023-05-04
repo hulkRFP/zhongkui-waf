@@ -1,5 +1,6 @@
 {
     "rules":[
+        {"state":"on","action":"deny","rule":"\\.\\./"},
         {"state":"on","action":"deny","rule":"select.+(from|limit)"},
         {"state":"on","action":"deny","rule":"(?:(union(.*?)select))"},
         {"state":"on","action":"deny","rule":"having|rongjitest"},

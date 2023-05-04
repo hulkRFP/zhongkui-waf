@@ -53,7 +53,7 @@ rulesConfig.fileExt = {ruleType = "file-ext", rule = "file-ext", action = "REDIR
 rulesConfig.whiteIp = {ruleType = "whiteip", rule = "whiteip", action = "ALLOW"}
 rulesConfig.blackIp = {ruleType = "blackip", rule = "blackip", action = "DENY"}
 rulesConfig.unsafeMethod = {ruleType = "unsafe-method", rule = "unsafe http method", action = "DENY"}
-rulesConfig.cc = {ruleType = "cc", rule = "cc", action = "DENY"}
+rulesConfig.cc = readRule(rulePath, "hfUrl") or {}
 
 local jsonStr = cjson.encode(rulesConfig)
 dict_config:set("rules", jsonStr)

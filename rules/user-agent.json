@@ -1,5 +1,11 @@
 {
     "rules":[
-        {"state":"on","action":"deny","rule":"(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln|-scan|hydra|Parser|libwww|BBBike|sqlmap|w3af|owasp|Nikto|fimap|havij|PycURL|zmeu|BabyKrokodil|netsparker|httperf|bench|python-requests|Expanse| SF/)"}
+        {"state":"on","action":"deny","rule":"(HTTrack|audit|dirbuster)"},
+        {"state":"on","action":"deny","rule":"(nmap|-scan|w3af|Nikto|libwww|owasp|fimap|zmeu|netsparker)"},
+        {"state":"on","action":"deny","rule":"(pangolin|sqln|sqlmap|havij)"},
+        {"state":"on","action":"deny","rule":"(hydra| SF/)"},
+        {"state":"on","action":"deny","rule":"(harvest|Parser|BBBike)"},
+        {"state":"on","action":"deny","rule":"(PycURL|python-requests|Expanse)"},
+        {"state":"on","action":"deny","rule":"(BabyKrokodil|httperf|bench)"}
     ]
 }

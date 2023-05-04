@@ -29,9 +29,10 @@ local function writeLog(ruleType, data, rule, action)
         if action == nil or action == "" then
             action = "-"
         end
-        local logStr = ruleType .. " " .. realIp .. " " .. geoName .. " [" .. time .. "] \"" .. method .. " " .. host .. url .. "\" \"" .. data .. "\"  \"" .. ua .. "\" \"" .. rule .. "\" " .. action .. "\n"
+        -- local logStr = ruleType .. " " .. realIp .. " " .. geoName .. " [" .. time .. "] \"" .. method .. " " .. host .. url .. "\" \"" .. data .. "\"  \"" .. ua .. "\" \"" .. rule .. "\" " .. action .. "\n"
+        local logStr = string.format('{"@timestamp":"%s", "attack_mode":"%s", "remote_ip":"%s", "method":"%s", "server":"%s", "request_url":"%s", "data":"%s", "uagent":"%s", "action":"%s", "hit_rule":"%s"}\n', time, ruleType, realIp, method, host, url, data, ua, action, rule)
 
-        local hostLogger = loggerFactory.getLogger(logPath, host, true)
+        local hostLogger = loggerFactory.getLogger(logPath, host, false, true)
         hostLogger:log(logStr)
     end
 end
@@ -62,7 +63,7 @@ local function redirect()
 end
 
 -- block ip
-function _M.blockIp(ip)
+function _M.blockIp(ip, reason)
     if config.isAutoIpBlockOn and ip then
 
         local ok, err, exists = nil, nil, nil
@@ -89,11 +90,14 @@ function _M.blockIp(ip)
         end
 
         if ok then
-            local hostLogger = loggerFactory.getLogger(logPath .. "ipBlock.log", 'ipBlock', false)
-            hostLogger:log(ngx.localtime() .. " " .. ip .. "\n")
+            local reason = reason or "_"
+            local host = ngx.var.server_name
+            local time = ngx.localtime()
+            local hostLogger = loggerFactory.getLogger(logPath .. "ipBlock.log", 'ipBlock', false, false)
+            hostLogger:log(string.format('{"@timestamp":"%s", "reason":"%s", "black_ip":"%s", "server":"%s"}\n', time, reason, ip, host))
 
             if config.ipBlockTimeout == 0 then
-                local ipBlackLogger = loggerFactory.getLogger(rulePath .. "ipBlackList", 'ipBlack', false)
+                local ipBlackLogger = loggerFactory.getLogger(rulePath .. "ipBlackList", 'ipBlack', false, false)
                 ipBlackLogger:log(ip .. "\n")
             end
         end
@@ -134,7 +138,7 @@ function _M.doAction(ruleTable, data, ruleType, status)
         ruleType = ruleTable.ruleType
     end
 
-    hit(ruleTable)
+    --hit(ruleTable)
 
     if action == "ALLOW" then
         writeLog(ruleType, data, rule, "ALLOW")

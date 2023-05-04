@@ -7,7 +7,7 @@ local _M = {}
 
 local mt = {__index = _M}
 
-function _M:new(logPath, host, rolling)
+function _M:new(logPath, host, rolling, joining)
     local t = {
             flush_limit = 4096,-- 4kb
             flush_timeout = 1,
@@ -19,6 +19,7 @@ function _M:new(logPath, host, rolling)
             logPath = logPath,
             prefix = logPath .. host .. '_',
             rolling = rolling or false,
+            joining = joining or false,
             host = host,
             timer = nil}
 
@@ -60,6 +61,8 @@ local function writeFile(self, value)
     local fileName = ''
     if self.rolling then
         fileName = self.prefix .. ngx.today() .. ".log"
+    elseif self.joining then
+        fileName = self.logPath .. "waf.log"
     else
         fileName = self.logPath
     end
@@ -67,7 +70,7 @@ local function writeFile(self, value)
 	local file = io.open(fileName, "a+")
 
 	if file == nil or value == nil then
-		return
+            return
 	end
 
 	file:write(value)

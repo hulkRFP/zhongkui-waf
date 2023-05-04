@@ -31,17 +31,17 @@ end
 
 
 local function matchRule(ruleTab, str, options)
-	if str == nil or next(ruleTab) == nil then
+    if str == nil or next(ruleTab) == nil then
         return false
-	end
+    end
 
     for _, t in ipairs(ruleTab) do
         if matches(str, t.rule, options) then
             return true, t
-		end
-	end
+        end
+    end
 
-	return false
+    return false
 end
 
 
@@ -56,7 +56,7 @@ local function loadIPBlackList()
 
         for _, ip in ipairs(config.ipBlackList) do
             blackip:set(ip, 1)
-	    end
+        end
     end
 end
 
@@ -64,11 +64,11 @@ end
 function _M.isWhiteIp()
     if config.isWhiteIPOn then
         local ip = ngx.ctx.ip
-	    if ip == "unknown" then
+        if ip == "unknown" then
             return false
-	    end
+        end
 
-	    for _, v in pairs(config.ipWhiteList) do
+        for _, v in pairs(config.ipWhiteList) do
             if type(v) == 'table' then
                 if ipUtils.isSameSubnet(v, ip) then
                     doAction(config.rules.whiteIp, "_", nil, nil)
@@ -78,9 +78,9 @@ function _M.isWhiteIp()
                 if ip == v then
                     doAction(config.rules.whiteIp, "-", nil, nil)
                     return true
-		        end
+                end
             end
-	    end
+        end
     end
 
     return false
@@ -156,41 +156,59 @@ function _M.isBlackUA()
     local m, ruleTable = matchRule(config.rules["user-agent"], ua)
     if m then
         doAction(ruleTable, "_", nil, nil)
-		return true
+        return true
     end
 
     return false
 end
 
+-- Nginx 在代理 PHP 请求时，会用到 try_files 机制，导致所有 PHP 请求都会通过 Nginx 内部重定向去调用项目入口文件 /index.php ($uri='/index.php')
+-- 这样就导致正常的客户访问也很容易触发 CC 攻击的阈值，所以忽略 uri='/index.php' 的 CC 检查。
 function _M.isCC()
     if config.isCCDenyOn then
         local uri = ngx.var.uri
+        if uri == '/index.php' then
+            return false
+        end
+
         local ip = ngx.ctx.ip
         local token = ngx.md5(ip .. uri)
+        local ccSeconds = config.ccSeconds
+        local ccCount = config.ccCount
+        local m, ruleTable = matchRule(config.rules.cc, uri)
+
+        if m then
+            ccSeconds = ruleTable.ccSeconds
+            ccCount   = ruleTable.ccCount
+            ruleTable.ruleType = "cc"
+        else
+            ruleTable = {ruleType = "cc", rule = "cc", action = "DENY"}
+        end
 
         if config.isRedisOn then
             local prefix = "cc_req_count:"
             local count = redisCli.redisGet(prefix .. token)
             if not count then
-                redisCli.redisSet(prefix .. token, 1, config.ccSeconds)
-            elseif tonumber(count) > config.ccCount then
-                doAction(config.rules.cc, "_", nil, 503)
-                blockIp(ip)
+                redisCli.redisSet(prefix .. token, 1, ccSeconds)
+            elseif tonumber(count) > ccCount then
+		--doAction(ruleTable, "_", nil, 503)
+                doAction(ruleTable, count, nil, 503)
+                blockIp(ip, "isCC")
                 return true
             else
-                redisCli.redisIncr(prefix .. token)
+                redisCli.redisIncr(prefix .. token, ccSeconds)
             end
         else
             local limit = ngx.shared.dict_cclimit
             local count,_ = limit:get(token)
             if not count then
-                limit:set(token, 1, config.ccSeconds)
-            elseif count > config.ccCount then
-                doAction(config.rules.cc, "_", nil, 503)
-                blockIp(ip)
+                limit:set(token, 1, ccSeconds)
+            elseif count > ccCount then
+                doAction(ruleTable, count, nil, 503)
+                blockIp(ip, "isCC")
                 return true
             else
-                limit:incr(token, 1)
+                limit:incr(token, 1, 0, ccSeconds)
             end
         end
     end
@@ -207,7 +225,7 @@ function _M.isWhiteURL()
         local m, ruleTable = matchRule(config.rules.whiteUrl, url)
         if m then
             doAction(ruleTable, "-", nil, nil)
-		    return true
+            return true
         end
         return false
     end
