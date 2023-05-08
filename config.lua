@@ -72,8 +72,9 @@ local config = {
 
     -- Redis支持，打开后请求频率统计及ip黑名单将从Redis中存取
     redis = "off",
-    redis_host = "172.30.12.196",
+    redis_host = "127.0.0.1",
     redis_port = "6379",
+    redis_db = 11,
     redis_passwd = "",
     redis_ssl = false,
     redis_pool_size = "10",

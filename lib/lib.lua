@@ -191,8 +191,7 @@ function _M.isCC()
             if not count then
                 redisCli.redisSet(prefix .. token, 1, ccSeconds)
             elseif tonumber(count) > ccCount then
-		--doAction(ruleTable, "_", nil, 503)
-                doAction(ruleTable, count, nil, 503)
+                doAction(ruleTable, count, nil, nil)
                 blockIp(ip, "isCC")
                 return true
             else
@@ -204,7 +203,7 @@ function _M.isCC()
             if not count then
                 limit:set(token, 1, ccSeconds)
             elseif count > ccCount then
-                doAction(ruleTable, count, nil, 503)
+                doAction(ruleTable, count, nil, nil)
                 blockIp(ip, "isCC")
                 return true
             else

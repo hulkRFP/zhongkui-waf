@@ -11,6 +11,7 @@ local redis_port = config.get("redis_port")
 if redis_port ~= nil and redis_port ~= "" then
     port = tonumber(redis_port)
 end
+local redis_db = config.get("redis_db")
 
 local passwd = config.get("redis_passwd")
 
@@ -54,7 +55,7 @@ local function getRedisConn()
         end
     end
 
-    red:select(11)    -- 选择 Redis 桶
+    red:select(redis_db)    -- 选择 Redis 桶
 
     return red, err
 end
