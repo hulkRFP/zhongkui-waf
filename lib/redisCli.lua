@@ -72,15 +72,16 @@ end
 
 function _M.redisSet(key, value, expireTime)
     local red, err = getRedisConn()
+    local ok, err = nil, nil
     if red then
         if expireTime and expireTime > 0 then
-            local ok, err = red:setex(key, expireTime, value)
+            ok, err = red:setex(key, expireTime, value)
             if not ok then
                 ngx.log(ngx.ERR, "failed to set key on redis: " .. key .. " "  .. err .. "\n", err)
                 return ok, err
             end
         else
-            local ok, err = red:set(key, value)
+            ok, err = red:set(key, value)
             if not ok then
                 ngx.log(ngx.ERR, "failed to set key on redis: " .. key .. " "  .. err .. "\n", err)
                 return ok, err
@@ -89,6 +90,7 @@ function _M.redisSet(key, value, expireTime)
 
         closeRedisConn(red)
     end
+    return ok, err
 end
 
 function _M.redisGet(key)
